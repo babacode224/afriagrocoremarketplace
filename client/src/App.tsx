@@ -8,10 +8,6 @@ import { AuthSync } from "./components/AuthSync";
 
 // Auth Pages
 import SignIn from "./pages/SignIn";
-import SignUp from "./pages/SignUp";
-import VerifyEmail from "./pages/VerifyEmail";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
 
 // Dashboard
 import UserDashboard from "./pages/UserDashboard";
@@ -39,17 +35,17 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/get-started" component={GetStarted} />
 
-      {/* Auth */}
+      {/* Auth — Google only */}
       <Route path="/signin" component={SignIn} />
-      <Route path="/signup" component={SignUp} />
-      <Route path="/verify-email" component={VerifyEmail} />
-      <Route path="/forgot-password" component={ForgotPassword} />
-      <Route path="/reset-password" component={ResetPassword} />
 
-      {/* Legacy redirects — keep for backward compatibility */}
+      {/* All legacy auth routes redirect to /signin */}
+      <Route path="/signup"><Redirect to="/signin" /></Route>
       <Route path="/login"><Redirect to="/signin" /></Route>
       <Route path="/auth"><Redirect to="/signin" /></Route>
-      <Route path="/register"><Redirect to="/signup" /></Route>
+      <Route path="/register"><Redirect to="/signin" /></Route>
+      <Route path="/forgot-password"><Redirect to="/signin" /></Route>
+      <Route path="/reset-password"><Redirect to="/signin" /></Route>
+      <Route path="/verify-email"><Redirect to="/signin" /></Route>
 
       {/* Dashboard */}
       <Route path="/dashboard" component={UserDashboard} />
