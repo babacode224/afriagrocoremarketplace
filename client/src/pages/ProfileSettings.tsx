@@ -69,6 +69,7 @@ function SelectField({ label, value, onChange, options, required }: {
         onChange={e => onChange(e.target.value)}
         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-green-400 focus:ring-1 focus:ring-green-400"
         required={required}
+        title={label}
       >
         <option value="">Select...</option>
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -116,8 +117,7 @@ interface ProfileSettingsProps {
 
 export default function ProfileSettings({ isGated = false }: ProfileSettingsProps) {
   const [, navigate] = useLocation();
-  const { user: authUser, refresh: refreshAuth } = useAuth();
-  const authLoading = false; // useAuth is synchronous from JWT context
+  const { user: authUser, loading: authLoading, refresh: refreshAuth } = useAuth();
   const meQuery = trpc.auth.getProfile.useQuery(undefined, { retry: false });
   const user = meQuery.data as any;
   const userRole: string = user?.userRole ?? "buyer";
@@ -126,7 +126,8 @@ export default function ProfileSettings({ isGated = false }: ProfileSettingsProp
 
   // ── Redirect unauthenticated users ────────────────────────────────────────
   useEffect(() => {
-    if (!authLoading && !authUser) navigate("/signin");
+    const isAuthCallback = window.location.hash.includes("access_token") || window.location.search.includes("code=");
+    if (!isAuthCallback && !authLoading && !authUser) navigate("/signin");
   }, [authLoading, authUser, navigate]);
 
   // ── Form state ────────────────────────────────────────────────────────────

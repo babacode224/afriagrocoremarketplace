@@ -58,6 +58,7 @@ function AddProductForm({ onSuccess }: { onSuccess: () => void }) {
         <div className="space-y-1">
           <Label>Category *</Label>
           <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-green-400"
+            title="Category"
             value={form.category} onChange={e => setForm({...form, category: e.target.value as any})}>
             <option value="produce">Farm Produce</option>
             <option value="livestock">Livestock</option>
@@ -77,6 +78,7 @@ function AddProductForm({ onSuccess }: { onSuccess: () => void }) {
         <div className="space-y-1">
           <Label>Unit</Label>
           <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-green-400"
+            title="Unit"
             value={form.unit} onChange={e => setForm({...form, unit: e.target.value})}>
             {["kg","ton","bag","crate","piece","liter","unit","acre","set"].map(u => <option key={u} value={u}>{u}</option>)}
           </select>
@@ -124,7 +126,8 @@ export default function UserDashboard() {
 
   // Auth guard: redirect to /signin if not authenticated
   useEffect(() => {
-    if (!meQuery.isLoading && meQuery.isError) {
+    const isAuthCallback = window.location.hash.includes("access_token") || window.location.search.includes("code=");
+    if (!isAuthCallback && !meQuery.isLoading && meQuery.isError) {
       navigate("/signin");
     }
   }, [meQuery.isLoading, meQuery.isError]);

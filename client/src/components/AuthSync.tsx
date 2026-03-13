@@ -12,12 +12,17 @@ export function AuthSync() {
     supabase.auth.onAuthStateChange(async (event, session) => {
       // When a user successfully authenticates via Google (or any Supabase provider),
       // they get a session. We need to sync this with our legacy tRPC cookie system.
-      if (session?.access_token && event === "SIGNED_IN") {
+      if (session?.access_token && (event === "SIGNED_IN" || event === "INITIAL_SESSION")) {
         try {
+          // Prevent multiple syncs in a row
+          if (window.sessionStorage.getItem("auth_sync_" + session.access_token)) {
+            return;
+          }
           await syncMutation.mutateAsync({
             accessToken: session.access_token,
           });
           
+          window.sessionStorage.setItem("auth_sync_" + session.access_token, "true");
           await utils.auth.me.invalidate();
           
           // If we came straight from the OAuth callback, forcefully reload to trigger the app_session_id payload
@@ -28,6 +33,8 @@ export function AuthSync() {
         } catch (error) {
           console.error("Failed to sync Supabase Google session:", error);
         }
+      } else if (event === "SIGNED_OUT") {
+        window.sessionStorage.clear();
       }
     });
   }, [syncMutation, utils, location, navigate]);
