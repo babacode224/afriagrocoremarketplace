@@ -125,29 +125,28 @@ export default function UserDashboard() {
   const roleConfig = ROLE_CONFIG[userRole] ?? ROLE_CONFIG.buyer;
   const RoleIcon = roleConfig.icon;
 
-  // Auth guard: redirect to /signin if not authenticated
+  // Auth guard: redirect to /signin only if BOTH Supabase session AND server session are absent
   useEffect(() => {
+    // Don't do anything while the query is loading
+    if (meQuery.isLoading) return;
+    // If the server knows us, we're good
+    if (!meQuery.isError) return;
+
+    // Server returned an error — now double-check with Supabase before redirecting
+    const isAuthCallback = window.location.hash.includes("access_token") || window.location.search.includes("code=");
+    if (isAuthCallback) return; // mid-OAuth, don't redirect
+
     let mounted = true;
-    
-    // Give it a small grace period to allow AuthSync to perform its work
-    const timer = setTimeout(() => {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (!mounted) return;
-        
-        const isAuthCallback = window.location.hash.includes("access_token") || window.location.search.includes("code=");
-        
-        // If there's NO session AND NO callback activity, AND the server says we aren't logged in, THEN redirect.
-        if (!session && !isAuthCallback && !meQuery.isLoading && meQuery.isError) {
-          console.log("[Auth] Guard triggered, redirecting to signin...");
-          navigate("/signin");
-        }
-      });
-    }, 1500); // 1.5s grace period for syncing
-    
-    return () => {
-      mounted = false;
-      clearTimeout(timer);
-    };
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      if (!session) {
+        console.log("[Auth] No session found, redirecting to signin...");
+        navigate("/signin");
+      }
+      // If session exists, AuthSync is still syncing — don't redirect
+    });
+
+    return () => { mounted = false; };
   }, [meQuery.isLoading, meQuery.isError, navigate]);
 
   // Profile completion gate: redirect to /complete-profile if profile not done
