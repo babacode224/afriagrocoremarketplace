@@ -4,6 +4,7 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch, Redirect } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { AuthSync } from "./components/AuthSync";
 
 // Auth Pages
 import SignIn from "./pages/SignIn";
@@ -79,6 +80,7 @@ function App() {
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
+          <AuthSync />
           <Router />
         </TooltipProvider>
       </ThemeProvider>

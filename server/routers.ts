@@ -153,6 +153,50 @@ export const appRouter = router({
       return { success: true, requireRoleSelection: false, availableRoles: [], user: { id: user.id, name: user.name, email: user.email, userRole: user.userRole, role: user.role, avatarUrl: user.avatarUrl } };
     }),
 
+    syncSupabaseSession: publicProcedure.input(z.object({
+      accessToken: z.string(),
+    })).mutation(async ({ input, ctx }) => {
+      // 1. Verify access token with Supabase
+      const { data, error } = await supabase.auth.getUser(input.accessToken);
+      if (error || !data.user) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid Supabase token" });
+      }
+      
+      const supabaseUser = data.user;
+      let user = await getUserByEmail(supabaseUser.email ?? "");
+      
+      // 2. If user doesn't exist locally (just signed up via Google), create them
+      if (!user) {
+        await upsertUser({
+          openId: supabaseUser.id,
+          name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0] || "User",
+          email: supabaseUser.email ?? "",
+          loginMethod: "google",
+          userRole: "buyer",
+          role: "user",
+          isVerified: true,
+          isActive: true,
+        });
+        
+        user = await getUserByEmail(supabaseUser.email ?? "");
+      }
+      if (!user) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to sync user" });
+      }
+
+      // 3. Issue our legacy app_session_id cookie so TRPC auth.me works correctly.
+      await updateUser(user.id, { lastSignedIn: new Date() });
+      const { SignJWT } = await import("jose");
+      const secret = new TextEncoder().encode(ENV.cookieSecret);
+      const token = await new SignJWT({ id: user.id, openId: user.openId, role: user.role, appId: ENV.appId, name: user.name ?? "" })
+        .setProtectedHeader({ alg: "HS256" }).setExpirationTime("7d").sign(secret);
+      
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
+      
+      return { success: true, user: { id: user.id, name: user.name, email: user.email, userRole: user.userRole, role: user.role } };
+    }),
+
     getProfile: protectedProcedure.query(async ({ ctx }) => {
       const user = await getUserByEmail(ctx.user.email ?? "");
       return user ?? ctx.user;
