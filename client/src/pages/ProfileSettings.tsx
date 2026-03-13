@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -126,8 +127,12 @@ export default function ProfileSettings({ isGated = false }: ProfileSettingsProp
 
   // ── Redirect unauthenticated users ────────────────────────────────────────
   useEffect(() => {
-    const isAuthCallback = window.location.hash.includes("access_token") || window.location.search.includes("code=");
-    if (!isAuthCallback && !authLoading && !authUser) navigate("/signin");
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const isAuthCallback = window.location.hash.includes("access_token") || window.location.search.includes("code=");
+      if (!session && !isAuthCallback && !authLoading && !authUser) {
+        navigate("/signin");
+      }
+    });
   }, [authLoading, authUser, navigate]);
 
   // ── Form state ────────────────────────────────────────────────────────────

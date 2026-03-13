@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Link, useLocation } from "wouter";
+import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import {
   Package, ShoppingCart, MessageSquare, Bell, LogOut, Menu, X, Leaf,
@@ -126,11 +127,13 @@ export default function UserDashboard() {
 
   // Auth guard: redirect to /signin if not authenticated
   useEffect(() => {
-    const isAuthCallback = window.location.hash.includes("access_token") || window.location.search.includes("code=");
-    if (!isAuthCallback && !meQuery.isLoading && meQuery.isError) {
-      navigate("/signin");
-    }
-  }, [meQuery.isLoading, meQuery.isError]);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const isAuthCallback = window.location.hash.includes("access_token") || window.location.search.includes("code=");
+      if (!session && !isAuthCallback && !meQuery.isLoading && meQuery.isError) {
+        navigate("/signin");
+      }
+    });
+  }, [meQuery.isLoading, meQuery.isError, navigate]);
 
   // Profile completion gate: redirect to /complete-profile if profile not done
   useEffect(() => {
