@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import { supabase } from "@/lib/supabase";
 import { UNAUTHED_ERR_MSG } from '@shared/const';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, TRPCClientError } from "@trpc/client";
@@ -11,13 +12,21 @@ import "./index.css";
 
 const queryClient = new QueryClient();
 
-const redirectToLoginIfUnauthorized = (error: unknown) => {
+const redirectToLoginIfUnauthorized = async (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;
   if (typeof window === "undefined") return;
 
   const isUnauthorized = error.message === UNAUTHED_ERR_MSG;
-
   if (!isUnauthorized) return;
+
+  // If we have a Supabase session, we are likely just waiting for sync
+  const { data: { session } } = await supabase.auth.getSession();
+  const isAuthCallback = window.location.hash.includes("access_token") || window.location.search.includes("code=");
+  
+  if (session || isAuthCallback) {
+    console.log("[Auth] Suppressing redirect as sync is likely in progress...");
+    return;
+  }
 
   window.location.href = getLoginUrl();
 };

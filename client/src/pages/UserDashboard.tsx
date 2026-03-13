@@ -127,12 +127,27 @@ export default function UserDashboard() {
 
   // Auth guard: redirect to /signin if not authenticated
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const isAuthCallback = window.location.hash.includes("access_token") || window.location.search.includes("code=");
-      if (!session && !isAuthCallback && !meQuery.isLoading && meQuery.isError) {
-        navigate("/signin");
-      }
-    });
+    let mounted = true;
+    
+    // Give it a small grace period to allow AuthSync to perform its work
+    const timer = setTimeout(() => {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!mounted) return;
+        
+        const isAuthCallback = window.location.hash.includes("access_token") || window.location.search.includes("code=");
+        
+        // If there's NO session AND NO callback activity, AND the server says we aren't logged in, THEN redirect.
+        if (!session && !isAuthCallback && !meQuery.isLoading && meQuery.isError) {
+          console.log("[Auth] Guard triggered, redirecting to signin...");
+          navigate("/signin");
+        }
+      });
+    }, 1500); // 1.5s grace period for syncing
+    
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+    };
   }, [meQuery.isLoading, meQuery.isError, navigate]);
 
   // Profile completion gate: redirect to /complete-profile if profile not done

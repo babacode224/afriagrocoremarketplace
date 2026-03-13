@@ -23,12 +23,22 @@ export function AuthSync() {
           });
           
           window.sessionStorage.setItem("auth_sync_" + session.access_token, "true");
-          await utils.auth.me.invalidate();
           
-          // If we came straight from the OAuth callback, forcefully reload to trigger the app_session_id payload
-          if (window.location.hash.includes("access_token") || window.location.search.includes("code=")) {
+          // Clear tRPC cache to ensure the new session is picked up
+          await utils.auth.me.invalidate();
+          await utils.auth.getProfile.invalidate();
+          
+          // Only redirect/reload if we are on the signin/signup page or have oauth tokens in URL
+          const shouldRedirect = window.location.pathname.includes("/signin") || 
+                               window.location.pathname.includes("/signup") ||
+                               window.location.hash.includes("access_token") || 
+                               window.location.search.includes("code=");
+
+          if (shouldRedirect) {
+            console.log("[Auth] Sync successful, redirecting to dashboard...");
             navigate("/dashboard");
-            window.location.reload();
+            // Small delay before reload to ensure 'navigate' registers
+            setTimeout(() => window.location.reload(), 100);
           }
         } catch (error) {
           console.error("Failed to sync Supabase Google session:", error);

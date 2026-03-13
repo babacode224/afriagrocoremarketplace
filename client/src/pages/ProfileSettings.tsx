@@ -127,12 +127,22 @@ export default function ProfileSettings({ isGated = false }: ProfileSettingsProp
 
   // ── Redirect unauthenticated users ────────────────────────────────────────
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const isAuthCallback = window.location.hash.includes("access_token") || window.location.search.includes("code=");
-      if (!session && !isAuthCallback && !authLoading && !authUser) {
-        navigate("/signin");
-      }
-    });
+    let mounted = true;
+    const timer = setTimeout(() => {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!mounted) return;
+        const isAuthCallback = window.location.hash.includes("access_token") || window.location.search.includes("code=");
+        if (!session && !isAuthCallback && !authLoading && !authUser) {
+          console.log("[Auth] Profile guard triggered, redirecting to signin...");
+          navigate("/signin");
+        }
+      });
+    }, 1500);
+
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+    };
   }, [authLoading, authUser, navigate]);
 
   // ── Form state ────────────────────────────────────────────────────────────
