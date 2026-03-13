@@ -43,6 +43,19 @@ async function startServer() {
       createContext,
     })
   );
+
+  // Global error handler for uncaught exceptions outside tRPC
+  app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    console.error("[Fatal Error]", err);
+    res.status(500).json({
+      error: {
+        message: "An internal server error occurred",
+        code: "INTERNAL_SERVER_ERROR",
+        details: process.env.NODE_ENV === "development" ? String(err) : undefined,
+      }
+    });
+  });
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);

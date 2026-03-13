@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { SignJWT } from "jose";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -98,7 +99,6 @@ export const appRouter = router({
       const verifyUrl = `${origin}/verify-email?token=${verificationToken}`;
       const emailResult = await sendVerificationEmail(user.email ?? "", user.name ?? "there", verifyUrl);
       
-      const { SignJWT } = await import("jose");
       const secret = new TextEncoder().encode(ENV.cookieSecret);
       const token = await new SignJWT({ id: user.id, openId: user.openId, role: user.role, appId: ENV.appId, name: user.name ?? "" })
         .setProtectedHeader({ alg: "HS256" }).setExpirationTime("7d").sign(secret);
@@ -144,7 +144,6 @@ export const appRouter = router({
       if (!user.isActive) throw new TRPCError({ code: "FORBIDDEN", message: "Account is deactivated" });
       await updateUser(user.id, { lastSignedIn: new Date() });
       await logAudit(user.id, "user_login", "users", user.id, "User logged in");
-      const { SignJWT } = await import("jose");
       const secret = new TextEncoder().encode(ENV.cookieSecret);
       const token = await new SignJWT({ id: user.id, openId: user.openId, role: user.role, appId: ENV.appId, name: user.name ?? "" })
         .setProtectedHeader({ alg: "HS256" }).setExpirationTime("7d").sign(secret);
@@ -186,7 +185,6 @@ export const appRouter = router({
 
       // 3. Issue our legacy app_session_id cookie so TRPC auth.me works correctly.
       await updateUser(user.id, { lastSignedIn: new Date() });
-      const { SignJWT } = await import("jose");
       const secret = new TextEncoder().encode(ENV.cookieSecret);
       const token = await new SignJWT({ id: user.id, openId: user.openId, role: user.role, appId: ENV.appId, name: user.name ?? "" })
         .setProtectedHeader({ alg: "HS256" }).setExpirationTime("7d").sign(secret);

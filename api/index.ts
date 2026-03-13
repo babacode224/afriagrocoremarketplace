@@ -20,4 +20,15 @@ app.use(
   })
 );
 
+// Global error handler
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error("[Vercel Error]", err);
+  res.status(500).json({
+    error: {
+      message: "A server error occurred",
+      details: String(err)
+    }
+  });
+});
+
 export default app;
