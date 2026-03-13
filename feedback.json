@@ -1,0 +1,47 @@
+[
+  {
+    "id": "feedback_1769775090373_przklhexe",
+    "fullName": "Ahmad ",
+    "email": "adekehinde2493@gmail.com",
+    "location": "Nigeria, Lagos",
+    "rating": 5,
+    "message": "It works fine",
+    "cropType": "cassava",
+    "detectedDisease": "Pest Damage",
+    "timestamp": "2026-01-30T12:11:30.373Z",
+    "userId": "user-123",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
+    "ipAddress": "127.0.0.1",
+    "submittedAt": "Friday, January 30, 2026 at 12:11:30 PM UTC"
+  },
+  {
+    "id": "feedback_1769775721536_i6rd4aqr4",
+    "fullName": "Ahmad",
+    "email": "adekehinde2493@gmail.com",
+    "location": "Lagod, Nigeria",
+    "rating": 5,
+    "message": "Test for Tomato",
+    "cropType": "tomato",
+    "detectedDisease": "Early Blight",
+    "timestamp": "2026-01-30T12:22:01.536Z",
+    "userId": "user-123",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
+    "ipAddress": "127.0.0.1",
+    "submittedAt": "Friday, January 30, 2026 at 12:22:01 PM UTC"
+  },
+  {
+    "id": "feedback_1769789276677_wrzfs9m38",
+    "fullName": "Ahmad",
+    "email": "adekehinde2493@gmail.com",
+    "location": "Lagos, Nigeria",
+    "rating": 5,
+    "message": "TEsting the app",
+    "cropType": "cassava",
+    "detectedDisease": "Leaf Spot",
+    "timestamp": "2026-01-30T16:07:56.677Z",
+    "userId": "user-123",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
+    "ipAddress": "127.0.0.1",
+    "submittedAt": "Friday, January 30, 2026 at 4:07:56 PM UTC"
+  }
+]
