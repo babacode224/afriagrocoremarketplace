@@ -119,34 +119,47 @@ export default function UserDashboard() {
   const [messageContent, setMessageContent] = useState("");
   const [selectedPartner, setSelectedPartner] = useState<number | null>(null);
 
-  const meQuery = trpc.auth.getProfile.useQuery(undefined, { retry: false });
+  const meQuery = trpc.auth.getProfile.useQuery(undefined, {
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
+  });
   const user = meQuery.data as any;
   const userRole = user?.userRole ?? "buyer";
   const roleConfig = ROLE_CONFIG[userRole] ?? ROLE_CONFIG.buyer;
   const RoleIcon = roleConfig.icon;
 
-  // Auth guard: redirect to /signin only if BOTH Supabase session AND server session are absent
+  // Auth guard: redirect to /signin only if BOTH Supabase session AND server session are absent.
+  // We wait 3 seconds before redirecting to give AuthSync time to sync the Google OAuth session
+  // to the server, which triggers a getProfile re-fetch automatically.
   useEffect(() => {
-    // Don't do anything while the query is loading
+    // Don't do anything while the query is still loading / retrying
     if (meQuery.isLoading) return;
     // If the server knows us, we're good
     if (!meQuery.isError) return;
 
-    // Server returned an error — now double-check with Supabase before redirecting
+    // Mid-OAuth callback — never redirect while tokens are in the URL
     const isAuthCallback = window.location.hash.includes("access_token") || window.location.search.includes("code=");
-    if (isAuthCallback) return; // mid-OAuth, don't redirect
+    if (isAuthCallback) return;
 
     let mounted = true;
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      if (!session) {
-        console.log("[Auth] No session found, redirecting to signin...");
-        navigate("/signin");
-      }
-      // If session exists, AuthSync is still syncing — don't redirect
-    });
 
-    return () => { mounted = false; };
+    // Delay the redirect check to give AuthSync time to sync the session
+    const timer = setTimeout(() => {
+      if (!mounted) return;
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!mounted) return;
+        if (!session) {
+          console.log("[Auth] No session found, redirecting to signin...");
+          navigate("/signin");
+        }
+        // If Supabase session exists, AuthSync will invalidate getProfile — don't redirect
+      });
+    }, 3000);
+
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+    };
   }, [meQuery.isLoading, meQuery.isError, navigate]);
 
   // Profile completion gate: redirect to /complete-profile if profile not done
