@@ -119,48 +119,48 @@ export default function UserDashboard() {
   const [messageContent, setMessageContent] = useState("");
   const [selectedPartner, setSelectedPartner] = useState<number | null>(null);
 
+  // ── Supabase session check (client-side, immediate) ──────────────────────
+  // This is the PRIMARY auth gate. We never redirect until we know Supabase's answer.
+  const [supabaseSession, setSupabaseSession] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
+
+  useEffect(() => {
+    let mounted = true;
+    // getSession() resolves immediately from local storage — no network call needed
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      if (!session) {
+        // No Supabase session at all → send to sign in
+        console.log("[Auth] No Supabase session → redirecting to signin");
+        navigate("/signin");
+      } else {
+        setSupabaseSession("authenticated");
+      }
+    });
+    // Also listen for sign-out during the session
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (!mounted) return;
+      if (event === "SIGNED_OUT") {
+        navigate("/signin");
+      }
+    });
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Server profile query — only runs once Supabase session is confirmed ──
   const meQuery = trpc.auth.getProfile.useQuery(undefined, {
-    retry: 3,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
+    // Don't even try to fetch until Supabase says we're authenticated
+    enabled: supabaseSession === "authenticated",
+    retry: 4,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
   });
   const user = meQuery.data as any;
   const userRole = user?.userRole ?? "buyer";
   const roleConfig = ROLE_CONFIG[userRole] ?? ROLE_CONFIG.buyer;
   const RoleIcon = roleConfig.icon;
-
-  // Auth guard: redirect to /signin only if BOTH Supabase session AND server session are absent.
-  // We wait 3 seconds before redirecting to give AuthSync time to sync the Google OAuth session
-  // to the server, which triggers a getProfile re-fetch automatically.
-  useEffect(() => {
-    // Don't do anything while the query is still loading / retrying
-    if (meQuery.isLoading) return;
-    // If the server knows us, we're good
-    if (!meQuery.isError) return;
-
-    // Mid-OAuth callback — never redirect while tokens are in the URL
-    const isAuthCallback = window.location.hash.includes("access_token") || window.location.search.includes("code=");
-    if (isAuthCallback) return;
-
-    let mounted = true;
-
-    // Delay the redirect check to give AuthSync time to sync the session
-    const timer = setTimeout(() => {
-      if (!mounted) return;
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (!mounted) return;
-        if (!session) {
-          console.log("[Auth] No session found, redirecting to signin...");
-          navigate("/signin");
-        }
-        // If Supabase session exists, AuthSync will invalidate getProfile — don't redirect
-      });
-    }, 3000);
-
-    return () => {
-      mounted = false;
-      clearTimeout(timer);
-    };
-  }, [meQuery.isLoading, meQuery.isError, navigate]);
 
   // Profile completion gate: redirect to /complete-profile if profile not done
   useEffect(() => {
@@ -359,6 +359,15 @@ export default function UserDashboard() {
       facebookUrl: (user as any).facebookUrl ?? "",
       instagramUrl: (user as any).instagramUrl ?? "",
     });
+  }
+
+  // Don't render anything until Supabase confirms the session (prevents flash)
+  if (supabaseSession === "loading") {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="animate-spin w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full" />
+      </div>
+    );
   }
 
   return (
