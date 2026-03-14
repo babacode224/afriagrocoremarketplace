@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Link, useLocation } from "wouter";
-import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import {
   Package, ShoppingCart, MessageSquare, Bell, LogOut, Menu, X, Leaf,
@@ -119,50 +118,26 @@ export default function UserDashboard() {
   const [messageContent, setMessageContent] = useState("");
   const [selectedPartner, setSelectedPartner] = useState<number | null>(null);
 
-  // ── Supabase session check (client-side, immediate) ──────────────────────
-  // This is the PRIMARY auth gate. We never redirect until we know Supabase's answer.
-  const [supabaseSession, setSupabaseSession] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
-
-  useEffect(() => {
-    let mounted = true;
-    // getSession() resolves immediately from local storage — no network call needed
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      if (!session) {
-        // No Supabase session at all → send to sign in
-        console.log("[Auth] No Supabase session → redirecting to signin");
-        navigate("/signin");
-      } else {
-        setSupabaseSession("authenticated");
-      }
-    });
-    // Also listen for sign-out during the session
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (!mounted) return;
-      if (event === "SIGNED_OUT") {
-        navigate("/signin");
-      }
-    });
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ── Server profile query — only runs once Supabase session is confirmed ──
+  // Auth guard: try to load the server session (cookie-based).
+  // The cookie is set directly by /api/auth/google/callback or /api/auth/login.
+  // If the server doesn't recognise us, redirect to /signin.
   const meQuery = trpc.auth.getProfile.useQuery(undefined, {
-    // Don't even try to fetch until Supabase says we're authenticated
-    enabled: supabaseSession === "authenticated",
-    retry: 4,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
+    retry: 2,
+    retryDelay: 1000,
   });
   const user = meQuery.data as any;
   const userRole = user?.userRole ?? "buyer";
   const roleConfig = ROLE_CONFIG[userRole] ?? ROLE_CONFIG.buyer;
   const RoleIcon = roleConfig.icon;
 
-  // Profile completion gate: redirect to /complete-profile if profile not done
+  useEffect(() => {
+    if (meQuery.isLoading) return;
+    if (meQuery.isError) {
+      navigate("/signin");
+    }
+  }, [meQuery.isLoading, meQuery.isError, navigate]);
+
+  // Profile completion gate
   useEffect(() => {
     if (!meQuery.isLoading && user && user.profileCompleted === false) {
       navigate("/complete-profile");
