@@ -8,6 +8,7 @@ import { AuthSync } from "./components/AuthSync";
 
 // Auth Pages
 import SignIn from "./pages/SignIn";
+import AuthCallback from "./pages/AuthCallback";
 
 // Dashboard
 import UserDashboard from "./pages/UserDashboard";
@@ -37,6 +38,7 @@ function Router() {
 
       {/* Auth — Google only */}
       <Route path="/signin" component={SignIn} />
+      <Route path="/auth/callback" component={AuthCallback} />
 
       {/* All legacy auth routes redirect to /signin */}
       <Route path="/signup"><Redirect to="/signin" /></Route>
